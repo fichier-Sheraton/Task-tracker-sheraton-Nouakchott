@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suivi des tâches — Hôtel</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#f5f4f0;--surface:#fff;--surface2:#f0efe9;--border:rgba(0,0,0,0.09);
+  --border2:rgba(0,0,0,0.16);--text:#1a1a18;--text2:#6b6b67;--text3:#a8a8a3;
+  --accent:#1a1a18;--radius:8px;--radius-lg:14px;
+  --shadow:0 1px 4px rgba(0,0,0,0.06),0 4px 20px rgba(0,0,0,0.05);
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* ── LOGIN ── */
+#loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:1rem;}
+.login-card{background:var(--surface);border:0.5px solid var(--border2);border-radius:20px;padding:2.5rem 2rem;width:380px;max-width:100%;box-shadow:0 8px 40px rgba(0,0,0,0.1);}
+.login-logo{text-align:center;margin-bottom:2rem;}
+.login-logo .hotel-icon{width:52px;height:52px;background:var(--text);border-radius:12px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;}
+.login-logo .hotel-icon svg{width:28px;height:28px;fill:#fff;}
+.login-logo h1{font-size:18px;font-weight:600;letter-spacing:-0.3px;}
+.login-logo p{font-size:13px;color:var(--text2);margin-top:4px;}
+.login-form .frow{margin-bottom:14px;}
+.login-form label{display:block;font-size:12px;font-weight:500;color:var(--text2);margin-bottom:5px;}
+.login-form input{width:100%;padding:9px 12px;border:0.5px solid var(--border2);border-radius:var(--radius);font-size:14px;background:var(--bg);color:var(--text);outline:none;transition:border-color .15s;}
+.login-form input:focus{border-color:var(--text);background:var(--surface);}
+.btn-login{width:100%;background:var(--text);color:#fff;border:none;padding:11px;border-radius:var(--radius);font-size:14px;font-weight:500;cursor:pointer;margin-top:6px;transition:opacity .15s;}
+.btn-login:hover{opacity:.85;}
+.login-error{display:none;background:#fef2f2;border:0.5px solid #fca5a5;color:#b91c1c;padding:9px 12px;border-radius:var(--radius);font-size:13px;margin-top:12px;text-align:center;}
+.login-hint{margin-top:1.5rem;padding-top:1rem;border-top:0.5px solid var(--border);font-size:11px;color:var(--text3);text-align:center;line-height:1.6;}
+
+/* ── APP ── */
+#appScreen{display:none;padding:1.5rem;}
+.page{max-width:1200px;margin:0 auto;}
+
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.75rem;flex-wrap:wrap;gap:12px;}
+.topbar-left h1{font-size:20px;font-weight:600;letter-spacing:-0.3px;}
+.topbar-left .sub{font-size:12px;color:var(--text2);margin-top:3px;}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.user-pill{display:flex;align-items:center;gap:8px;background:var(--surface);border:0.5px solid var(--border2);border-radius:30px;padding:6px 14px 6px 8px;font-size:13px;}
+.user-avatar{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff;}
+.btn-logout{background:none;border:0.5px solid var(--border2);color:var(--text2);padding:6px 13px;border-radius:var(--radius);font-size:12px;cursor:pointer;}
+.btn-logout:hover{background:var(--surface2);}
+
+/* admin tabs */
+.dept-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1.25rem;}
+.dept-tab{padding:5px 13px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:0.5px solid var(--border2);background:var(--surface);color:var(--text2);transition:all .15s;}
+.dept-tab.active{background:var(--text);color:#fff;border-color:var(--text);}
+
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:1.5rem;}
+.stat-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;box-shadow:var(--shadow);}
+.stat-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;}
+.stat-value{font-size:24px;font-weight:600;line-height:1;}
+
+.controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1.25rem;align-items:center;}
+.controls select,.controls input{font-size:13px;padding:7px 11px;border-radius:var(--radius);border:0.5px solid var(--border2);background:var(--surface);color:var(--text);height:36px;outline:none;transition:border-color .15s;}
+.controls select:focus,.controls input:focus{border-color:var(--text);}
+.controls input{flex:1;min-width:150px;}
+.btn-add{background:var(--text);color:#fff;border:none;padding:0 18px;height:36px;border-radius:var(--radius);font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;}
+.btn-add:hover{opacity:.85;}
+
+.table-wrap{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow);margin-bottom:1.5rem;overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:820px;table-layout:fixed;}
+th{background:var(--surface2);color:var(--text2);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.05em;padding:10px 14px;text-align:left;border-bottom:0.5px solid var(--border);}
+td{padding:11px 14px;border-bottom:0.5px solid var(--border);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:#fafaf7;}
+.col-t{width:20%}.col-d{width:12%}.col-r{width:13%}.col-dl{width:11%}.col-i{width:15%}.col-s{width:12%}.col-a{width:17%;text-align:center;}
+
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;}
+.b-enc{background:#dbeafe;color:#1e40af;}
+.b-fin{background:#dcfce7;color:#166534;}
+.b-pas{background:#f1f0ec;color:#5a5a56;}
+.dept-pill{display:inline-block;padding:2px 9px;border-radius:5px;font-size:11px;font-weight:500;}
+.late{color:#b91c1c;font-weight:600;}
+.soon{color:#92400e;}
+.inter-yes{color:#b91c1c;font-weight:500;}
+.inter-no{color:var(--text3);}
+.note-sub{font-size:11px;color:var(--text3);margin-top:3px;}
+
+.btn-e{background:none;border:0.5px solid var(--border2);color:var(--text2);padding:3px 9px;border-radius:5px;font-size:11px;cursor:pointer;margin-right:3px;}
+.btn-e:hover{background:var(--surface2);color:var(--text);}
+.btn-x{background:none;border:none;color:#b91c1c;padding:3px 7px;border-radius:5px;font-size:13px;cursor:pointer;}
+.btn-x:hover{background:#fef2f2;}
+.qs{font-size:11px;padding:3px 5px;border-radius:5px;border:0.5px solid var(--border2);background:var(--surface);color:var(--text);cursor:pointer;}
+
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:1rem;}
+.chart-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem;box-shadow:var(--shadow);}
+.chart-title{font-size:12px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);}
+.leg-dot{width:10px;height:10px;border-radius:2px;}
+
+/* Modal */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:200;align-items:center;justify-content:center;}
+.overlay.open{display:flex;}
+.modal{background:var(--surface);border-radius:var(--radius-lg);border:0.5px solid var(--border2);padding:1.75rem;width:460px;max-width:95vw;max-height:92vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,0.15);}
+.modal h2{font-size:17px;font-weight:600;margin-bottom:1.25rem;}
+.frow{margin-bottom:13px;}
+.frow label{display:block;font-size:12px;color:var(--text2);margin-bottom:5px;font-weight:500;}
+.frow input,.frow select,.frow textarea{width:100%;font-size:13px;padding:8px 10px;border-radius:var(--radius);border:0.5px solid var(--border2);background:var(--surface);color:var(--text);outline:none;transition:border-color .15s;font-family:inherit;}
+.frow input:focus,.frow select:focus,.frow textarea:focus{border-color:var(--text);}
+.frow textarea{resize:vertical;min-height:60px;}
+.faction{display:flex;gap:10px;justify-content:flex-end;margin-top:1.25rem;}
+.btn-cancel{background:none;border:0.5px solid var(--border2);color:var(--text2);padding:8px 18px;border-radius:var(--radius);font-size:13px;cursor:pointer;}
+.btn-save{background:var(--text);color:#fff;border:none;padding:8px 18px;border-radius:var(--radius);font-size:13px;font-weight:500;cursor:pointer;}
+.btn-save:hover{opacity:.85;}
+
+/* Admin password modal */
+.admin-modal-info{font-size:13px;color:var(--text2);margin-bottom:1rem;line-height:1.6;}
+.pwd-row{display:flex;gap:8px;align-items:flex-end;margin-bottom:10px;}
+.pwd-row .frow{flex:1;margin-bottom:0;}
+.pwd-row button{height:36px;padding:0 14px;font-size:12px;border:0.5px solid var(--border2);background:var(--surface2);color:var(--text);border-radius:var(--radius);cursor:pointer;white-space:nowrap;}
+
+.section-divider{border:none;border-top:0.5px solid var(--border);margin:1rem 0;}
+.ro-notice{background:#fffbeb;border:0.5px solid #fbbf24;border-radius:var(--radius);padding:9px 14px;font-size:12px;color:#92400e;margin-bottom:1rem;}
+
+/* File attachment */
+.file-drop{border:1.5px dashed var(--border2);border-radius:var(--radius);padding:14px;text-align:center;cursor:pointer;transition:all .15s;background:var(--bg);}
+.file-drop:hover,.file-drop.dragover{border-color:var(--text);background:var(--surface2);}
+.file-drop-label{font-size:12px;color:var(--text2);}
+.file-drop-label span{color:var(--text);font-weight:500;text-decoration:underline;}
+.file-drop input[type=file]{display:none;}
+.attached-files{margin-top:8px;display:flex;flex-direction:column;gap:6px;}
+.file-chip{display:flex;align-items:center;gap:8px;background:var(--surface2);border:0.5px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:12px;}
+.file-chip-icon{width:24px;height:24px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0;}
+.file-chip-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);}
+.file-chip-size{color:var(--text3);font-size:11px;flex-shrink:0;}
+.file-chip-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 2px;flex-shrink:0;}
+.file-chip-del:hover{color:#b91c1c;}
+.file-chip-dl{background:none;border:none;color:#378ADD;cursor:pointer;font-size:11px;padding:0;flex-shrink:0;text-decoration:underline;}
+.attach-badge{display:inline-flex;align-items:center;gap:3px;background:#e0f2fe;color:#0369a1;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:500;margin-left:6px;cursor:pointer;vertical-align:middle;}
+.attach-badge:hover{background:#bae6fd;}
+
+@media(max-width:640px){.charts{grid-template-columns:1fr;}#appScreen{padding:1rem;}.topbar-right{flex-wrap:wrap;}}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════ LOGIN ═══════════════════════════════ -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="hotel-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 3L2 9v12h7v-6h6v6h7V9L12 3zm0 2.5L20 11v9h-3v-6H7v6H4V11l8-5.5z"/></svg>
+      </div>
+      <h1>Suivi des tâches</h1>
+      <p>Connectez-vous à votre espace</p>
+    </div>
+    <div class="login-form">
+      <div class="frow"><label>Identifiant</label><input type="text" id="loginUser" placeholder="Ex: admin ou fnb" autocomplete="username"></div>
+      <div class="frow"><label>Mot de passe</label><input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="btn-login" onclick="doLogin()">Se connecter</button>
+      <div class="login-error" id="loginError">Identifiant ou mot de passe incorrect.</div>
+    </div>
+    <div class="login-hint" id="loginHint">Contactez l'administrateur pour obtenir vos accès.</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════ APP ═══════════════════════════════ -->
+<div id="appScreen">
+  <div class="page">
+
+    <div class="topbar">
+      <div class="topbar-left">
+        <h1 id="appTitle">Suivi des tâches</h1>
+        <div class="sub" id="appSub"></div>
+      </div>
+      <div class="topbar-right">
+        <div class="user-pill">
+          <div class="user-avatar" id="userAvatar">?</div>
+          <span id="userName"></span>
+        </div>
+        <button class="btn-logout" onclick="logout()">Déconnexion</button>
+        <button class="btn-add" id="btnAdd" onclick="openModal()" style="display:none">+ Nouvelle tâche</button>
+        <button class="btn-e" id="btnAdminPwd" onclick="openAdminPwd()" style="display:none;font-size:12px;height:36px;">⚙ Gérer les accès</button>
+      </div>
+    </div>
+
+    <!-- Admin dept tabs -->
+    <div class="dept-tabs" id="deptTabs" style="display:none"></div>
+
+    <div id="roNotice" class="ro-notice" style="display:none">Vous êtes en lecture seule. Contactez l'administrateur pour modifier les tâches.</div>
+
+    <div class="stats-grid" id="statsGrid"></div>
+    <div class="controls" id="controlsBar">
+      <select id="filterStatut" onchange="render()">
+        <option value="">Tous les statuts</option>
+        <option value="En cours">En cours</option>
+        <option value="Finalisé">Finalisé</option>
+        <option value="Pas encore commencé">Pas encore commencé</option>
+      </select>
+      <input type="text" id="searchInput" placeholder="Rechercher..." oninput="render()">
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th class="col-t">Tâche</th>
+          <th class="col-d" id="thDept">Département</th>
+          <th class="col-r">Responsable</th>
+          <th class="col-dl">Délai</th>
+          <th class="col-i">Intervention ext.</th>
+          <th class="col-s">Statut</th>
+          <th class="col-a" id="thActions">Actions</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="charts" id="chartsSection">
+      <div class="chart-card">
+        <div class="chart-title">Répartition par statut</div>
+        <div class="legend" id="legendStatut"></div>
+        <div style="position:relative;height:200px;"><canvas id="chartStatut"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title" id="chartDeptTitle">Tâches par département</div>
+        <div style="position:relative;height:240px;"><canvas id="chartDept"></canvas></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Task Modal -->
+<div class="overlay" id="overlay" onclick="closeOut(event)">
+  <div class="modal">
+    <h2 id="modalTitle">Nouvelle tâche</h2>
+    <div class="frow"><label>Tâche *</label><input type="text" id="fTache" placeholder="Intitulé de la tâche"></div>
+    <div class="frow" id="fDeptRow"><label>Département *</label>
+      <select id="fDept"><option value="">Sélectionner...</option></select>
+    </div>
+    <div class="frow"><label>Responsable *</label><input type="text" id="fResp" placeholder="Nom du responsable"></div>
+    <div class="frow"><label>Délai</label><input type="date" id="fDelai"></div>
+    <div class="frow"><label>Intervention extérieure nécessaire ?</label>
+      <select id="fInter" onchange="document.getElementById('fInterWho').style.display=this.value==='Oui'?'block':'none'">
+        <option value="Non">Non</option><option value="Oui">Oui</option>
+      </select>
+    </div>
+    <div class="frow" id="fInterWho" style="display:none"><label>Qui / quel service ?</label>
+      <input type="text" id="fInterDetail" placeholder="Ex: Prestataire, Sous-traitant...">
+    </div>
+    <div class="frow"><label>Statut</label>
+      <select id="fStatut">
+        <option value="Pas encore commencé">Pas encore commencé</option>
+        <option value="En cours">En cours</option>
+        <option value="Finalisé">Finalisé</option>
+      </select>
+    </div>
+    <div class="frow"><label>Notes</label><textarea id="fNotes" placeholder="Remarques..."></textarea></div>
+    <div class="frow">
+      <label>Pièces jointes <span style="color:var(--text3);font-weight:400;">(PDF, Word, Excel, images)</span></label>
+      <div class="file-drop" id="fileDrop" onclick="document.getElementById('fileInput').click()" ondragover="fileDragOver(event)" ondragleave="fileDragLeave(event)" ondrop="handleFileDrop(event)">
+        <input type="file" id="fileInput" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.txt" onchange="fileSelected(event)">
+        <div class="file-drop-label">Glissez vos fichiers ici ou <span>parcourir</span></div>
+        <div style="font-size:11px;color:var(--text3);margin-top:3px;">PDF · Word · Excel · Images — max 5 Mo par fichier</div>
+      </div>
+      <div class="attached-files" id="attachedFiles"></div>
+    </div>
+    <div class="faction">
+      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="btn-save" onclick="saveTask()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Admin Password Manager Modal -->
+<div class="overlay" id="adminPwdOverlay" onclick="if(event.target===this)closeAdminPwd()">
+  <div class="modal" style="max-width:520px;">
+    <h2>Gestion des accès</h2>
+    <p class="admin-modal-info">Modifiez les identifiants et mots de passe de chaque utilisateur. Ces informations sont stockées localement dans le navigateur.</p>
+    <div id="pwdList"></div>
+    <div class="faction">
+      <button class="btn-cancel" onclick="closeAdminPwd()">Fermer</button>
+      <button class="btn-save" onclick="savePwds()">Sauvegarder</button>
+    </div>
+  </div>
+</div>
+
+<!-- File viewer modal -->
+<div class="overlay" id="fileViewOverlay" onclick="if(event.target===this)closeFileView()">
+  <div class="modal" style="max-width:560px;">
+    <h2 id="fileViewTitle">Pièces jointes</h2>
+    <div id="fileViewList" style="display:flex;flex-direction:column;gap:8px;margin-top:4px;"></div>
+    <div class="faction"><button class="btn-cancel" onclick="closeFileView()">Fermer</button></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════
+// DATA
+// ══════════════════════════════════════
+const DEPTS = ['F&B','Hébergement','Réception','Housekeeping','RH','Finance','Direction','Maintenance','Spa','Sécurité'];
+const DEPT_COLORS = {
+  'F&B':'#D85A30','Hébergement':'#378ADD','Réception':'#7F77DD','Housekeeping':'#1D9E75',
+  'RH':'#D4537E','Finance':'#BA7517','Direction':'#1a1a18','Maintenance':'#888780',
+  'Spa':'#639922','Sécurité':'#E24B4A'
+};
+
+// Default credentials — admin sees all; dept users see only their dept
+let USERS = {
+  admin:    { pass:'Admin2024!', dept:'ADMIN', label:'Administrateur', ro:false },
+  fnb:      { pass:'FnB2024',    dept:'F&B',          label:'F&B Manager',         ro:false },
+  heberg:   { pass:'Heb2024',    dept:'Hébergement',  label:'Dir. Hébergement',    ro:false },
+  reception:{ pass:'Rec2024',    dept:'Réception',     label:'Chef Réception',      ro:false },
+  housekeep:{ pass:'HK2024',     dept:'Housekeeping',  label:'Gouvernante',         ro:false },
+  rh:       { pass:'RH2024',     dept:'RH',            label:'RH Manager',          ro:false },
+  finance:  { pass:'Fin2024',    dept:'Finance',       label:'Dir. Finance',        ro:false },
+  direction:{ pass:'Dir2024',    dept:'Direction',     label:'Direction Générale',  ro:false },
+  maintenance:{ pass:'Maint2024',dept:'Maintenance',   label:'Resp. Maintenance',   ro:false },
+  spa:      { pass:'Spa2024',    dept:'Spa',           label:'Spa Manager',         ro:false },
+  securite: { pass:'Sec2024',    dept:'Sécurité',      label:'Chef Sécurité',       ro:false },
+};
+
+let tasks = [
+  {id:1,tache:'Révision carte restaurant',dept:'F&B',resp:'Karim Ould Sidi',delai:'2026-05-15',inter:'Non',interDetail:'',statut:'En cours',notes:'Saison estivale',files:[]},
+  {id:2,tache:'Formation équipe salle',dept:'F&B',resp:'Aïcha Mint Bah',delai:'2026-05-20',inter:'Non',interDetail:'',statut:'Pas encore commencé',notes:'',files:[]},
+  {id:3,tache:'Rénovation chambres 201-210',dept:'Hébergement',resp:'Mohamed Ould Cheikh',delai:'2026-06-01',inter:'Oui',interDetail:'Entreprise BTP',statut:'En cours',notes:'',files:[]},
+  {id:4,tache:'Audit qualité suites',dept:'Hébergement',resp:'Fatima Mint Salem',delai:'2026-05-25',inter:'Non',interDetail:'',statut:'Pas encore commencé',notes:'',files:[]},
+  {id:5,tache:'Mise à jour logiciel PMS',dept:'Réception',resp:'Ibrahim Sow',delai:'2026-05-10',inter:'Oui',interDetail:'Prestataire Opera',statut:'En cours',notes:'',files:[]},
+  {id:6,tache:'Recrutement 2 réceptionnistes',dept:'RH',resp:'Mariam Bah',delai:'2026-05-30',inter:'Non',interDetail:'',statut:'Pas encore commencé',notes:'',files:[]},
+  {id:7,tache:'Clôture budget mensuel',dept:'Finance',resp:'Oumar Traoré',delai:'2026-05-08',inter:'Non',interDetail:'',statut:'En cours',notes:'',files:[]},
+  {id:8,tache:'Contrôle stock linge',dept:'Housekeeping',resp:'Aissatou Diallo',delai:'2026-05-12',inter:'Non',interDetail:'',statut:'Finalisé',notes:'',files:[]},
+  {id:9,tache:'Maintenance piscine',dept:'Maintenance',resp:'Sidi Ould Ahmed',delai:'2026-05-18',inter:'Oui',interDetail:'Technicien piscine',statut:'En cours',notes:'',files:[]},
+  {id:10,tache:'Rapport mensuel direction',dept:'Direction',resp:'Fatou Ba',delai:'2026-05-31',inter:'Oui',interDetail:'Tous départements',statut:'Pas encore commencé',notes:'',files:[]},
+];
+let nextId = 11, editingId = null;
+let currentUser = null;
+let cStatut = null, cDept = null;
+let activeAdminDept = 'TOUS';
+let pendingFiles = []; // files staged in modal before save
+
+// Load from localStorage
+function loadData(){
+  const t = localStorage.getItem('hotel_tasks');
+  if(t) try{ tasks = JSON.parse(t); nextId = Math.max(...tasks.map(x=>x.id))+1; }catch(e){}
+  const u = localStorage.getItem('hotel_users');
+  if(u) try{ USERS = JSON.parse(u); }catch(e){}
+}
+function saveData(){ localStorage.setItem('hotel_tasks', JSON.stringify(tasks)); }
+function saveUsers(){ localStorage.setItem('hotel_users', JSON.stringify(USERS)); }
+
+// ══════════════════════════════════════
+// LOGIN
+// ══════════════════════════════════════
+function doLogin(){
+  const uid = document.getElementById('loginUser').value.trim().toLowerCase();
+  const pass = document.getElementById('loginPass').value;
+  const user = USERS[uid];
+  if(!user || user.pass !== pass){
+    document.getElementById('loginError').style.display='block';
+    return;
+  }
+  document.getElementById('loginError').style.display='none';
+  currentUser = { id: uid, ...user };
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('appScreen').style.display='block';
+  initApp();
+}
+
+function logout(){
+  currentUser = null;
+  document.getElementById('appScreen').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('loginUser').value='';
+  document.getElementById('loginPass').value='';
+  activeAdminDept = 'TOUS';
+}
+
+// ══════════════════════════════════════
+// APP INIT
+// ══════════════════════════════════════
+const AVATAR_COLORS = ['#D85A30','#378ADD','#7F77DD','#1D9E75','#D4537E','#BA7517','#639922','#E24B4A'];
+function avatarColor(s){ let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))&0xffffff; return AVATAR_COLORS[Math.abs(h)%AVATAR_COLORS.length]; }
+
+function initApp(){
+  const u = currentUser;
+  const initials = u.label.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+  document.getElementById('userAvatar').textContent = initials;
+  document.getElementById('userAvatar').style.background = avatarColor(u.label);
+  document.getElementById('userName').textContent = u.label;
+
+  const isAdmin = u.dept === 'ADMIN';
+  const isRO = u.ro;
+
+  document.getElementById('appTitle').textContent = isAdmin ? 'Tableau de bord — Tous les départements' : `Tâches — ${u.dept}`;
+  document.getElementById('appSub').textContent = isAdmin ? 'Vue administrateur · accès complet' : `Vue restreinte à votre département`;
+
+  document.getElementById('btnAdd').style.display = (!isRO) ? 'inline-block' : 'none';
+  document.getElementById('btnAdminPwd').style.display = isAdmin ? 'inline-block' : 'none';
+  document.getElementById('roNotice').style.display = isRO ? 'block' : 'none';
+  document.getElementById('thDept').style.display = isAdmin ? '' : 'none';
+
+  // Admin dept tabs
+  const tabs = document.getElementById('deptTabs');
+  if(isAdmin){
+    tabs.style.display='flex';
+    tabs.innerHTML = ['TOUS',...DEPTS].map(d=>
+      `<button class="dept-tab${d===activeAdminDept?' active':''}" onclick="setAdminDept('${d}')">${d==='TOUS'?'Tous':d}</button>`
+    ).join('');
+  } else {
+    tabs.style.display='none';
+  }
+
+  // Dept select in modal
+  const sel = document.getElementById('fDept');
+  sel.innerHTML='<option value="">Sélectionner...</option>';
+  const deptList = isAdmin ? DEPTS : [u.dept];
+  deptList.forEach(d=>{ const o=document.createElement('option'); o.value=d; o.textContent=d; sel.appendChild(o); });
+  document.getElementById('fDeptRow').style.display = isAdmin ? '' : 'none';
+
+  render();
+}
+
+function setAdminDept(d){
+  activeAdminDept = d;
+  document.querySelectorAll('.dept-tab').forEach(b=>b.classList.toggle('active', b.textContent===(d==='TOUS'?'Tous':d)));
+  render();
+}
+
+// ══════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════
+function dc(d){ return DEPT_COLORS[d]||'#888780'; }
+
+function fmtDate(d){
+  if(!d) return '<span style="color:#a8a8a3">—</span>';
+  const dt=new Date(d), now=new Date(); now.setHours(0,0,0,0);
+  const diff=Math.ceil((dt-now)/86400000);
+  const s=dt.toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'});
+  if(diff<0) return `<span class="late">⚠ ${s}</span>`;
+  if(diff<=5) return `<span class="soon">${s}</span>`;
+  return s;
+}
+
+function badgeSt(s){
+  if(s==='En cours') return `<span class="badge b-enc">En cours</span>`;
+  if(s==='Finalisé') return `<span class="badge b-fin">Finalisé</span>`;
+  return `<span class="badge b-pas">Pas encore commencé</span>`;
+}
+
+function getVisibleTasks(){
+  const isAdmin = currentUser.dept==='ADMIN';
+  const deptFilter = isAdmin ? (activeAdminDept==='TOUS' ? null : activeAdminDept) : currentUser.dept;
+  const statut = document.getElementById('filterStatut').value;
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  return tasks.filter(t=>
+    (!deptFilter || t.dept===deptFilter) &&
+    (!statut || t.statut===statut) &&
+    (!q || t.tache.toLowerCase().includes(q) || t.resp.toLowerCase().includes(q))
+  );
+}
+
+function render(){
+  renderStats();
+  renderTable();
+  renderCharts();
+}
+
+function renderStats(){
+  const vis = getVisibleTasks();
+  const enc=vis.filter(t=>t.statut==='En cours').length;
+  const fin=vis.filter(t=>t.statut==='Finalisé').length;
+  const pas=vis.filter(t=>t.statut==='Pas encore commencé').length;
+  const inter=vis.filter(t=>t.inter==='Oui').length;
+  const now=new Date(); now.setHours(0,0,0,0);
+  const late=vis.filter(t=>t.delai&&new Date(t.delai)<now&&t.statut!=='Finalisé').length;
+  document.getElementById('statsGrid').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value">${vis.length}</div></div>
+    <div class="stat-card"><div class="stat-label">En cours</div><div class="stat-value" style="color:#1e40af">${enc}</div></div>
+    <div class="stat-card"><div class="stat-label">Finalisées</div><div class="stat-value" style="color:#166534">${fin}</div></div>
+    <div class="stat-card"><div class="stat-label">Pas commencées</div><div class="stat-value" style="color:#5a5a56">${pas}</div></div>
+    <div class="stat-card"><div class="stat-label">Intervention ext.</div><div class="stat-value" style="color:#b91c1c">${inter}</div></div>
+    ${late>0?`<div class="stat-card"><div class="stat-label">En retard</div><div class="stat-value" style="color:#b91c1c">${late}</div></div>`:''}
+  `;
+}
+
+function renderTable(){
+  const isAdmin = currentUser.dept==='ADMIN';
+  const isRO = currentUser.ro;
+  const vis = getVisibleTasks();
+  const tb = document.getElementById('tbody');
+  if(!vis.length){ tb.innerHTML=`<tr><td colspan="7" style="text-align:center;padding:2rem;color:#a8a8a3;">Aucune tâche</td></tr>`; return; }
+  tb.innerHTML = vis.map(t=>`
+    <tr data-taskid="${t.id}">
+      <td style="font-weight:500;word-break:break-word;white-space:normal;">${t.tache}${t.notes?`<div class="note-sub">${t.notes}</div>`:''}${renderTaskFiles(t.files)}</td>
+      ${isAdmin?`<td><span class="dept-pill" style="background:${dc(t.dept)}20;color:${dc(t.dept)};border:1px solid ${dc(t.dept)}44;">${t.dept}</span></td>`:''}
+      <td style="white-space:nowrap;">${t.resp}</td>
+      <td style="white-space:nowrap;">${fmtDate(t.delai)}</td>
+      <td>${t.inter==='Oui'?`<span class="inter-yes">Oui</span>${t.interDetail?`<div class="note-sub">${t.interDetail}</div>`:''}`:`<span class="inter-no">Non</span>`}</td>
+      <td>${badgeSt(t.statut)}</td>
+      <td style="text-align:center;white-space:nowrap;">
+        ${!isRO?`<button class="btn-e" onclick="editTask(${t.id})">Modifier</button>`:''}
+        ${!isRO?`<select class="qs" onchange="changeStatut(${t.id},this.value)">
+          <option value="Pas encore commencé"${t.statut==='Pas encore commencé'?' selected':''}>Pas commencé</option>
+          <option value="En cours"${t.statut==='En cours'?' selected':''}>En cours</option>
+          <option value="Finalisé"${t.statut==='Finalisé'?' selected':''}>Finalisé</option>
+        </select>`:''}
+        ${isAdmin?`<button class="btn-x" onclick="deleteTask(${t.id})">✕</button>`:''}
+        ${isRO?'<span style="color:var(--text3);font-size:12px;">Lecture seule</span>':''}
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderCharts(){
+  const vis = getVisibleTasks();
+  const isAdmin = currentUser.dept==='ADMIN';
+  const enc=vis.filter(t=>t.statut==='En cours').length;
+  const fin=vis.filter(t=>t.statut==='Finalisé').length;
+  const pas=vis.filter(t=>t.statut==='Pas encore commencé').length;
+
+  document.getElementById('legendStatut').innerHTML=`
+    <span class="leg-item"><span class="leg-dot" style="background:#3b82f6"></span>En cours (${enc})</span>
+    <span class="leg-item"><span class="leg-dot" style="background:#22c55e"></span>Finalisé (${fin})</span>
+    <span class="leg-item"><span class="leg-dot" style="background:#d1d5db"></span>Pas commencé (${pas})</span>
+  `;
+
+  if(cStatut) cStatut.destroy();
+  cStatut = new Chart(document.getElementById('chartStatut'),{
+    type:'doughnut',
+    data:{labels:['En cours','Finalisé','Pas encore commencé'],datasets:[{data:[enc,fin,pas],backgroundColor:['#3b82f6','#22c55e','#d1d5db'],borderWidth:0,hoverOffset:4}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${c.raw}`}}}}
+  });
+
+  if(isAdmin && (activeAdminDept==='TOUS')){
+    document.getElementById('chartDeptTitle').textContent='Tâches par département';
+    const depts=DEPTS.filter(d=>tasks.some(t=>t.dept===d));
+    const counts=depts.map(d=>tasks.filter(t=>t.dept===d).length);
+    const colors=depts.map(d=>dc(d));
+    if(cDept) cDept.destroy();
+    cDept=new Chart(document.getElementById('chartDept'),{
+      type:'bar',
+      data:{labels:depts,datasets:[{data:counts,backgroundColor:colors.map(c=>c+'BB'),borderColor:colors,borderWidth:1,borderRadius:5}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11},autoSkip:false,maxRotation:35},grid:{display:false}},y:{ticks:{stepSize:1,font:{size:11}},grid:{color:'rgba(0,0,0,0.05)'},beginAtZero:true}}}
+    });
+  } else {
+    const dept = isAdmin ? activeAdminDept : currentUser.dept;
+    document.getElementById('chartDeptTitle').textContent=`Progression — ${dept}`;
+    if(cDept) cDept.destroy();
+    cDept=new Chart(document.getElementById('chartDept'),{
+      type:'bar',
+      data:{labels:['Pas commencé','En cours','Finalisé'],datasets:[{data:[pas,enc,fin],backgroundColor:['#d1d5db','#93c5fd','#86efac'],borderWidth:0,borderRadius:8}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{ticks:{stepSize:1},grid:{color:'rgba(0,0,0,0.05)'},beginAtZero:true}},indexAxis:'y'}
+    });
+  }
+}
+
+// ══════════════════════════════════════
+// FILE ATTACHMENTS
+// ══════════════════════════════════════
+const FILE_TYPE_COLORS = {pdf:'#E24B4A',doc:'#378ADD',docx:'#378ADD',xls:'#1D9E75',xlsx:'#1D9E75',png:'#7F77DD',jpg:'#7F77DD',jpeg:'#7F77DD',txt:'#888780'};
+function fileExt(name){ return name.split('.').pop().toLowerCase(); }
+function fileTypeColor(name){ return FILE_TYPE_COLORS[fileExt(name)]||'#888780'; }
+function fmtSize(bytes){ if(bytes<1024) return bytes+'o'; if(bytes<1048576) return Math.round(bytes/1024)+'Ko'; return (bytes/1048576).toFixed(1)+'Mo'; }
+
+function fileToBase64(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=e=>res(e.target.result); r.onerror=rej; r.readAsDataURL(file); }); }
+
+async function processFiles(fileList){
+  for(const file of fileList){
+    if(file.size > 5*1024*1024){ alert(`"${file.name}" dépasse 5 Mo et ne peut pas être joint.`); continue; }
+    if(pendingFiles.find(f=>f.name===file.name&&f.size===file.size)) continue;
+    const data = await fileToBase64(file);
+    pendingFiles.push({ name:file.name, size:file.size, type:file.type, data });
+  }
+  renderPendingFiles();
+}
+
+function renderPendingFiles(){
+  const el = document.getElementById('attachedFiles');
+  if(!pendingFiles.length){ el.innerHTML=''; return; }
+  el.innerHTML = pendingFiles.map((f,i)=>`
+    <div class="file-chip">
+      <div class="file-chip-icon" style="background:${fileTypeColor(f.name)}">${fileExt(f.name).toUpperCase()}</div>
+      <span class="file-chip-name" title="${f.name}">${f.name}</span>
+      <span class="file-chip-size">${fmtSize(f.size)}</span>
+      <button class="file-chip-del" onclick="removePendingFile(${i})" title="Retirer">✕</button>
+    </div>
+  `).join('');
+}
+
+function removePendingFile(i){ pendingFiles.splice(i,1); renderPendingFiles(); }
+
+function fileSelected(e){ processFiles(e.target.files); e.target.value=''; }
+function fileDragOver(e){ e.preventDefault(); document.getElementById('fileDrop').classList.add('dragover'); }
+function fileDragLeave(e){ document.getElementById('fileDrop').classList.remove('dragover'); }
+function handleFileDrop(e){ e.preventDefault(); document.getElementById('fileDrop').classList.remove('dragover'); processFiles(e.dataTransfer.files); }
+
+function renderTaskFiles(files){
+  if(!files||!files.length) return '';
+  return `<span class="attach-badge" onclick="openFileView(event)">📎 ${files.length}</span>`;
+}
+
+function openFileView(e){
+  e.stopPropagation();
+  const row = e.target.closest('tr');
+  const taskId = parseInt(row.dataset.taskid);
+  const task = tasks.find(t=>t.id===taskId);
+  if(!task||!task.files||!task.files.length) return;
+  document.getElementById('fileViewTitle').textContent = `Pièces jointes — ${task.tache}`;
+  document.getElementById('fileViewList').innerHTML = task.files.map((f,i)=>`
+    <div class="file-chip" style="padding:10px 14px;">
+      <div class="file-chip-icon" style="background:${fileTypeColor(f.name)};width:32px;height:32px;font-size:11px;">${fileExt(f.name).toUpperCase()}</div>
+      <div style="flex:1;overflow:hidden;">
+        <div class="file-chip-name" style="font-size:13px;" title="${f.name}">${f.name}</div>
+        <div style="font-size:11px;color:var(--text3);">${fmtSize(f.size)}</div>
+      </div>
+      <button class="file-chip-dl" onclick="downloadFile(${taskId},${i})">Télécharger</button>
+    </div>
+  `).join('');
+  document.getElementById('fileViewOverlay').classList.add('open');
+}
+
+function closeFileView(){ document.getElementById('fileViewOverlay').classList.remove('open'); }
+
+function downloadFile(taskId, fileIdx){
+  const task = tasks.find(t=>t.id===taskId);
+  if(!task||!task.files[fileIdx]) return;
+  const f = task.files[fileIdx];
+  const a = document.createElement('a');
+  a.href = f.data;
+  a.download = f.name;
+  a.click();
+}
+
+// ══════════════════════════════════════
+// TASK CRUD
+// ══════════════════════════════════════
+function changeStatut(id,val){ const t=tasks.find(x=>x.id===id); if(t){t.statut=val;saveData();render();} }
+function deleteTask(id){ if(confirm('Supprimer cette tâche ?')){ tasks=tasks.filter(t=>t.id!==id);saveData();render(); } }
+function editTask(id){ openModal(id); }
+
+function openModal(id=null){
+  editingId=id;
+  const t=id?tasks.find(x=>x.id===id):null;
+  const isAdmin=currentUser.dept==='ADMIN';
+  document.getElementById('modalTitle').textContent=id?'Modifier la tâche':'Nouvelle tâche';
+  document.getElementById('fTache').value=t?t.tache:'';
+  document.getElementById('fDept').value=t?t.dept:(isAdmin?'':(currentUser.dept));
+  document.getElementById('fResp').value=t?t.resp:'';
+  document.getElementById('fDelai').value=t?t.delai:'';
+  document.getElementById('fInter').value=t?t.inter:'Non';
+  document.getElementById('fInterDetail').value=t?t.interDetail:'';
+  document.getElementById('fStatut').value=t?t.statut:'Pas encore commencé';
+  document.getElementById('fNotes').value=t?t.notes:'';
+  document.getElementById('fInterWho').style.display=(t&&t.inter==='Oui')?'block':'none';
+  pendingFiles = t&&t.files ? [...t.files] : [];
+  renderPendingFiles();
+  document.getElementById('overlay').classList.add('open');
+}
+
+function closeModal(){ document.getElementById('overlay').classList.remove('open'); editingId=null; }
+function closeOut(e){ if(e.target===document.getElementById('overlay')) closeModal(); }
+
+function saveTask(){
+  const tache=document.getElementById('fTache').value.trim();
+  const isAdmin=currentUser.dept==='ADMIN';
+  const dept=isAdmin?document.getElementById('fDept').value:currentUser.dept;
+  const resp=document.getElementById('fResp').value.trim();
+  if(!tache||!dept||!resp){ alert('Veuillez remplir : Tâche, Département et Responsable.'); return; }
+  const obj={id:editingId||nextId++,tache,dept,resp,delai:document.getElementById('fDelai').value,inter:document.getElementById('fInter').value,interDetail:document.getElementById('fInterDetail').value.trim(),statut:document.getElementById('fStatut').value,notes:document.getElementById('fNotes').value.trim(),files:[...pendingFiles]};
+  if(editingId){ const i=tasks.findIndex(t=>t.id===editingId); tasks[i]=obj; } else tasks.push(obj);
+  pendingFiles=[];
+  saveData(); closeModal(); render();
+}
+
+// ══════════════════════════════════════
+// ADMIN PASSWORD MANAGER
+// ══════════════════════════════════════
+function openAdminPwd(){
+  const list=document.getElementById('pwdList');
+  list.innerHTML=Object.entries(USERS).map(([uid,u])=>`
+    <div style="background:var(--surface2);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;">
+      <div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em;">${u.label} <span style="color:var(--text3);font-size:11px;">(${u.dept})</span></div>
+      <div class="pwd-row">
+        <div class="frow"><label>Identifiant</label><input type="text" id="uid_${uid}" value="${uid}"></div>
+        <div class="frow"><label>Mot de passe</label><input type="text" id="pwd_${uid}" value="${u.pass}"></div>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('adminPwdOverlay').classList.add('open');
+}
+
+function closeAdminPwd(){ document.getElementById('adminPwdOverlay').classList.remove('open'); }
+
+function savePwds(){
+  const newUsers={};
+  Object.entries(USERS).forEach(([uid,u])=>{
+    const newUid=document.getElementById('uid_'+uid).value.trim().toLowerCase()||uid;
+    const newPwd=document.getElementById('pwd_'+uid).value.trim()||u.pass;
+    newUsers[newUid]={...u, pass:newPwd};
+  });
+  USERS=newUsers;
+  saveUsers();
+  closeAdminPwd();
+  alert('Accès mis à jour avec succès.');
+}
+
+// ══════════════════════════════════════
+// INIT
+// ══════════════════════════════════════
+loadData();
+
+// Show login hint with credentials for demo
+document.getElementById('loginHint').innerHTML=`
+  <strong style="color:var(--text2)">Comptes de démonstration :</strong><br>
+  Admin : <code>admin</code> / <code>Admin2024!</code><br>
+  F&B : <code>fnb</code> / <code>FnB2024</code> &nbsp;·&nbsp; Hébergement : <code>heberg</code> / <code>Heb2024</code>
+`;
+</script>
+</body>
+</html>
